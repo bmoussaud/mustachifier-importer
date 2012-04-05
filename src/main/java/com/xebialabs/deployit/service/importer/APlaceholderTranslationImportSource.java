@@ -22,7 +22,7 @@ public class APlaceholderTranslationImportSource implements ImportSource {
 	public File getFile() {
 		if (mustachiedFile == null) {
 			try {
-				mustachiedFile = new Mustachifier(null).convert(original.getFile().getAbsolutePath());
+				mustachiedFile = new Mustachifier().convert(original.getFile().getAbsolutePath());
 				LOGGER.debug("mustachiedFile = " + mustachiedFile);
 			} catch (IOException e) {
 				throw new RuntimeException("Cannot Mustache the file " + original.getFile(), e);

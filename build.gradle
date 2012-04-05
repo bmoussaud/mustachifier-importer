@@ -1,52 +1,45 @@
 apply plugin: 'java'
-apply plugin: 'maven'
+apply plugin: 'eclipse'
 apply plugin: 'idea'
+apply plugin: 'maven'
 
-group = 'com.xebialabs.deployit'
-version = '1.0-SNAPSHOT'
+group = 'com.xebialabs.deployit.community'
+apiVersion = '3.7.0'
+version = "${apiVersion}-1-SNAPSHOT"
 
 sourceCompatibility = 1.6
 sourceEncoding = 'UTF-8'
 
-serverApiVersion = '3.6.1-SNAPSHOT'
-pluginApiVersion = '3.6.0'
-trueZipVersion = '7.3.1'
-
 dependencies {
-	compile "com.xebialabs.deployit:server-core:${serverApiVersion}"
-	compile "com.xebialabs.deployit:server-plugin-api:${pluginApiVersion}"
-	compile "com.xebialabs.deployit:single-file-importer:1.0-SNAPSHOT"
-	compile "com.xebialabs.deployit.plugins:jee-plugin:${pluginApiVersion}"
-	runtime "de.schlichtherle.truezip:truezip-driver-zip:${trueZipVersion}"
-	compile "de.schlichtherle.truezip:truezip-file:${trueZipVersion}"
-	compile "com.xebialabs.deployit.cli:mustachifier:1.1.2-SNAPSHOT"
+    compile "com.xebialabs.deployit:udm-plugin-api:$apiVersion"
+	compile "com.google.guava:guava:10.0.1"
+	compile "com.xebialabs.deployit:server-plugin-api:$apiVersion"
+	compile "com.xebialabs.deployit.plugins:jee-plugin:$apiVersion"
+	compile "com.xebialabs.deployit.community:single-file-importer:$version"
+	compile "com.xebialabs.deployit.community:mustachifier:$version"
+
 	testCompile 'junit:junit:4.8.2'
-	testCompile 'com.qrmedia.commons:commons-lang:1.0.2'
-	testCompile 'ch.qos.logback:logback-classic:0.9.24'
+	testCompile "com.xebialabs.deployit:udm-test-support:$apiVersion"
 }
 
 repositories {
-        mavenLocal()
-        if (!rootProject.hasProperty('offline')) {
-                mavenRepo urls: "${nexusBaseUrl}/groups/public/"
-                mavenRepo urls: "${nexusBaseUrl}/repositories/thirdparty/"
-                mavenRepo urls: "${nexusBaseUrl}/repositories/hidden-thirdparty/"
-                mavenRepo urls: "${nexusBaseUrl}/repositories/snapshots"
-                mavenRepo urls: "${nexusBaseUrl}/repositories/releases"
-                org.apache.ivy.util.url.CredentialsStore.INSTANCE.addCredentials("Sonatype Nexus Repository Manager", nexusHost, nexusUserName, nexusPassword);
-                mavenCentral()
-                mavenRepo urls: 'https://oss.sonatype.org/service/local/repositories/nljavadude-593/content/'
-        }
+  mavenLocal()
+  if (!rootProject.hasProperty('offline')) {
+    mavenCentral()
+    maven {
+      credentials {
+        username nexusUserName
+        password nexusPassword
+      }
+      url "${nexusBaseUrl}/repositories/releases"
+    }
+  }
 }
-
-configurations {
-  // http://issues.gradle.org/browse/GRADLE-784
-  provided
-}
-
 
 afterEvaluate { eachProject ->
-  eachProject.tasks.withType(Test).each { testTask ->
+  Set testTasks = eachProject.tasks.withType(Test)
+  
+  testTasks.each { testTask ->
     testTask.onlyIf { !project.hasProperty('skipTests') }
     testTask.afterSuite { descriptor, result ->
       if (descriptor.className != null) {
@@ -59,9 +52,7 @@ afterEvaluate { eachProject ->
 }
 
 task generatePom << {
-  conf2ScopeMappings.addMapping(Integer.MAX_VALUE, configurations.provided, 
-    Conf2ScopeMappingContainer.PROVIDED)
-  pom { 
+  pom {
     project { 
       build { 
         plugins {
@@ -81,8 +72,8 @@ task generatePom << {
               encoding = sourceEncoding
             }
           }
-        } 
-      } 
-    } 
+        }
+      }
+    }
   }.writeTo('pom.xml')
 }

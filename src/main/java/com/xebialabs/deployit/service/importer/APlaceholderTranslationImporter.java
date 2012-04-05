@@ -8,13 +8,12 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 
-import static com.xebialabs.deployit.service.importer.PackageScanner.isDarPackage;
-
 public class APlaceholderTranslationImporter implements ListableImporter {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(APlaceholderTranslationImportSource.class);
+	static final String DELEGATED_SERVICE = "com.xebialabs.deployit.server.api.importer.ManifestBasedDarImporter";
 
-	private final ListableImporter service = new ManifestBasedDarImporter();
+	private ListableImporter service;
 	private APlaceholderTranslationImportSource translationImportSource;
 
 	public APlaceholderTranslationImporter() {
@@ -33,15 +32,32 @@ public class APlaceholderTranslationImporter implements ListableImporter {
 	public PackageInfo preparePackage(ImportSource source, ImportingContext context) {
 		LOGGER.debug("source = {}", source);
 		translationImportSource = new APlaceholderTranslationImportSource(source);
-		return service.preparePackage(translationImportSource, context);
+		return getService().preparePackage(translationImportSource, context);
 	}
 
 	public ImportedPackage importEntities(PackageInfo packageInfo, ImportingContext context) {
-		return service.importEntities(packageInfo, context);
+		return getService().importEntities(packageInfo, context);
 	}
 
 	public void cleanUp(PackageInfo packageInfo, ImportingContext context) {
-		service.cleanUp(packageInfo, context);
+		getService().cleanUp(packageInfo, context);
 		translationImportSource.cleanUp();
+	}
+
+	static boolean isDarPackage(final File f) {
+		return f.isFile() && f.getName().toLowerCase().endsWith(".dar");
+	}
+
+	public ListableImporter getService() {
+		if (service == null) {
+			try {
+				final Class<?> aClass = this.getClass().getClassLoader().loadClass(DELEGATED_SERVICE);
+				service = (ListableImporter) aClass.newInstance();
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new RuntimeException("Cannot instance class " + DELEGATED_SERVICE, e);
+			}
+		}
+		return service;
 	}
 }
